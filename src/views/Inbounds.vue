@@ -26,6 +26,17 @@
     :id="qrcode.id"
     @close="qrcode.visible = false"
   />
+  <v-dialog v-model="picker.visible" width="320">
+    <v-card class="rounded-lg" :title="$t('pages.clients')">
+      <v-divider></v-divider>
+      <v-list density="compact" nav>
+        <v-list-item v-for="c in picker.clients" :key="c.id" link @click="pickClient(c.id)">
+          <template v-slot:prepend><v-icon icon="mdi-qrcode"></v-icon></template>
+          <v-list-item-title>{{ c.name }}</v-list-item-title>
+        </v-list-item>
+      </v-list>
+    </v-card>
+  </v-dialog>
   <v-row>
     <v-col cols="12" justify="center" align="center">
       <v-btn color="primary" @click="showModal(0)">{{ $t('actions.add') }}</v-btn>
@@ -111,6 +122,10 @@
             <v-icon />
             <v-tooltip activator="parent" location="top" :text="$t('actions.clone')"></v-tooltip>
           </v-btn>
+          <v-btn icon="mdi-qrcode" v-if="item.users && item.users.length > 0" @click="showInboundQr(item)">
+            <v-icon />
+            <v-tooltip activator="parent" location="top" :text="$t('client.links')"></v-tooltip>
+          </v-btn>
           <v-btn icon="mdi-chart-line" @click="showStats(item.tag)" v-if="Data().enableTraffic">
             <v-icon />
             <v-tooltip activator="parent" location="top" :text="$t('stats.graphTitle')"></v-tooltip>
@@ -168,6 +183,32 @@ const qrcode = ref({
 })
 const onTemplateCreated = (clientId: number) => {
   qrcode.value.id = clientId
+  qrcode.value.visible = true
+}
+
+// QR access straight from an inbound card. One client -> show its QR directly;
+// several -> let the user pick which one.
+const picker = ref({
+  visible: false,
+  clients: <any[]>[],
+})
+const clientsOf = (item: any): any[] => {
+  return Data().clients.filter((c: any) => Array.isArray(c.inbounds) && c.inbounds.includes(item.id))
+}
+const showInboundQr = (item: any) => {
+  const cls = clientsOf(item)
+  if (cls.length === 0) return
+  if (cls.length === 1) {
+    qrcode.value.id = cls[0].id
+    qrcode.value.visible = true
+    return
+  }
+  picker.value.clients = cls
+  picker.value.visible = true
+}
+const pickClient = (id: number) => {
+  picker.value.visible = false
+  qrcode.value.id = id
   qrcode.value.visible = true
 }
 
