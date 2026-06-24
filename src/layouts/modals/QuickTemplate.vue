@@ -182,7 +182,10 @@ export default {
           return
         }
 
-        // 3) VLESS + Reality (Vision) inbound referencing the TLS record
+        // 3) VLESS + Reality (Vision) inbound referencing the TLS record.
+        // Note: flow / packet_encoding are per-user fields and live on the
+        // client config, NOT on the inbound (the backend rejects unknown
+        // inbound fields with a strict JSON decoder).
         const inbound: any = createInbound('vless', {
           id: 0,
           tag: tag,
@@ -190,11 +193,13 @@ export default {
           listen_port: port,
           tls_id: tlsId,
         })
-        inbound.flow = 'xtls-rprx-vision'
-        inbound.packet_encoding = 'xudp'
         inbound.addrs = []
         inbound.out_json = {}
-        if (!await Data().save('inbounds', 'new', inbound)) return
+        if (!await Data().save('inbounds', 'new', inbound)) {
+          // Roll back the orphan TLS record we just created.
+          await Data().save('tls', 'del', tlsId)
+          return
+        }
         const inboundId = Data().inbounds.find((i: any) => i.tag === tag)?.id
         if (!inboundId) {
           push.error({ message: i18n.global.t('error.invalidData') + ': ' + i18n.global.t('objects.inbound') })
