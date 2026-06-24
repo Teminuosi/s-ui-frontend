@@ -26,6 +26,18 @@ export default {
   count: "Count",
   template: "Template",
   editor: "Editor",
+  quickTemplate: {
+    btn: "Quick Add",
+    title: "One-Click Templates",
+    pick: "Template",
+    sni: "Camouflage Domain (SNI)",
+    sniHint: "A real HTTPS site whose TLS is borrowed via the Reality handshake",
+    create: "Create",
+    vlessReality: "VLESS + Reality (Vision)",
+    vlessRealityDesc: "Recommended. No certificate needed — borrows a real site's TLS via Reality. Creates the inbound, Reality keys and the first client in one click.",
+    success: "Template created successfully",
+    failName: "An inbound tag or client name already exists, please try again",
+  },
   error: {
     dplData: "Duplicate Data",
     core: "Sing-Box Error",

@@ -26,6 +26,18 @@ export default {
   count: "计数",
   template: "模板",
   editor: "编辑器",
+  quickTemplate: {
+    btn: "一键添加",
+    title: "一键协议模板",
+    pick: "模板",
+    sni: "伪装域名 (SNI)",
+    sniHint: "借用其 TLS 的真实 HTTPS 网站(Reality 握手目标)",
+    create: "创建",
+    vlessReality: "VLESS + Reality (Vision)",
+    vlessRealityDesc: "推荐。无需证书——通过 Reality 借用真实网站的 TLS。一键建好入站、Reality 密钥对和首个客户端。",
+    success: "模板创建成功",
+    failName: "入站标签或客户端名称已存在,请重试",
+  },
   error: {
     dplData: "重复数据",
     core: "Sing-Box 错误",

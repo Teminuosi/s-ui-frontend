@@ -14,9 +14,17 @@
     :tag="stats.tag"
     @close="closeStats"
   />
+  <QuickTemplate
+    v-model="templateModal"
+    :visible="templateModal"
+    @close="closeTemplate"
+  />
   <v-row>
     <v-col cols="12" justify="center" align="center">
       <v-btn color="primary" @click="showModal(0)">{{ $t('actions.add') }}</v-btn>
+      <v-btn color="primary" variant="tonal" class="ms-2" prepend-icon="mdi-flash" @click="templateModal = true">
+        {{ $t('quickTemplate.btn') }}
+      </v-btn>
     </v-col>
   </v-row>
   <v-row>
@@ -109,6 +117,7 @@
 <script lang="ts" setup>
 import Data from '@/store/modules/data'
 import InboundVue from '@/layouts/modals/Inbound.vue'
+import QuickTemplate from '@/layouts/modals/QuickTemplate.vue'
 import Stats from '@/layouts/modals/Stats.vue'
 import { Config } from '@/types/config'
 import { computed, ref } from 'vue'
@@ -139,6 +148,11 @@ const modal = ref({
   visible: false,
   id: 0,
 })
+
+const templateModal = ref(false)
+const closeTemplate = () => {
+  templateModal.value = false
+}
 
 let delOverlay = ref(new Array<boolean>)
 
