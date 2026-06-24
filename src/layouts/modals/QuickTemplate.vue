@@ -72,7 +72,7 @@ import { push } from 'notivue'
 
 export default {
   props: ['visible'],
-  emits: ['close'],
+  emits: ['close', 'created'],
   data() {
     return {
       loading: false,
@@ -223,7 +223,10 @@ export default {
         if (!await Data().save('clients', 'new', client)) return
 
         push.success({ title: i18n.global.t('success'), message: i18n.global.t('quickTemplate.success') })
+        const newClientId = Data().clients.find((c: any) => c.name === clientName)?.id
         this.closeModal()
+        // Pop the QR code straight away so it can be scanned into a client app.
+        if (newClientId) this.$emit('created', newClientId)
       } catch (e: any) {
         push.error({ message: i18n.global.t('error.invalidData') + ': ' + (e?.toString() ?? '') })
       } finally {

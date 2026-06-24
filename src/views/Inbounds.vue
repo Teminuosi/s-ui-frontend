@@ -18,6 +18,13 @@
     v-model="templateModal"
     :visible="templateModal"
     @close="closeTemplate"
+    @created="onTemplateCreated"
+  />
+  <QrCode
+    v-model="qrcode.visible"
+    :visible="qrcode.visible"
+    :id="qrcode.id"
+    @close="qrcode.visible = false"
   />
   <v-row>
     <v-col cols="12" justify="center" align="center">
@@ -118,6 +125,7 @@
 import Data from '@/store/modules/data'
 import InboundVue from '@/layouts/modals/Inbound.vue'
 import QuickTemplate from '@/layouts/modals/QuickTemplate.vue'
+import QrCode from '@/layouts/modals/QrCode.vue'
 import Stats from '@/layouts/modals/Stats.vue'
 import { Config } from '@/types/config'
 import { computed, ref } from 'vue'
@@ -152,6 +160,15 @@ const modal = ref({
 const templateModal = ref(false)
 const closeTemplate = () => {
   templateModal.value = false
+}
+
+const qrcode = ref({
+  visible: false,
+  id: 0,
+})
+const onTemplateCreated = (clientId: number) => {
+  qrcode.value.id = clientId
+  qrcode.value.visible = true
 }
 
 let delOverlay = ref(new Array<boolean>)
