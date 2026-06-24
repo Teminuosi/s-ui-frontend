@@ -56,6 +56,9 @@ export default {
     desc: "All client share links, one per line. In v2rayN: Servers → Import bulk URL from clipboard (Ctrl+V).",
     copy: "Copy All",
     empty: "No links to export",
+    plain: "Plain",
+    base64: "Base64",
+    base64Hint: "Base64 (subscription content format) — for tools that import a single encoded blob.",
   },
   error: {
     dplData: "Duplicate Data",

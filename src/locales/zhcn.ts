@@ -56,6 +56,9 @@ export default {
     desc: "所有客户端的分享链接,每行一条。v2rayN:服务器 → 从剪贴板导入批量URL(Ctrl+V)。",
     copy: "复制全部",
     empty: "没有可导出的链接",
+    plain: "明文",
+    base64: "Base64",
+    base64Hint: "Base64(订阅内容格式)——给只认整包编码的工具用。",
   },
   error: {
     dplData: "重复数据",

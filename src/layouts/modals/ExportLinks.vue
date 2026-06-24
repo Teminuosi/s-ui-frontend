@@ -11,8 +11,19 @@
       <v-divider></v-divider>
       <v-card-text>
         <p style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 10px;">{{ $t('exportLinks.desc') }}</p>
+        <v-btn-toggle
+          v-model="format"
+          mandatory
+          density="compact"
+          variant="outlined"
+          color="primary"
+          style="margin-bottom: 10px;">
+          <v-btn value="plain" size="small">{{ $t('exportLinks.plain') }}</v-btn>
+          <v-btn value="base64" size="small">{{ $t('exportLinks.base64') }}</v-btn>
+        </v-btn-toggle>
+        <p v-if="format === 'base64'" style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 8px;">{{ $t('exportLinks.base64Hint') }}</p>
         <v-textarea
-          v-model="text"
+          :model-value="displayText"
           :rows="12"
           readonly
           variant="outlined"
@@ -46,6 +57,7 @@ export default {
       loading: false,
       text: '',
       count: 0,
+      format: 'plain',
     }
   },
   watch: {
@@ -53,11 +65,25 @@ export default {
       if (v) this.load()
     },
   },
+  computed: {
+    displayText(): string {
+      if (this.format === 'base64' && this.text) {
+        try {
+          // UTF-8 safe base64 (links may carry non-ASCII remarks).
+          return btoa(unescape(encodeURIComponent(this.text)))
+        } catch {
+          return this.text
+        }
+      }
+      return this.text
+    },
+  },
   methods: {
     async load() {
       this.loading = true
       this.text = ''
       this.count = 0
+      this.format = 'plain'
       const ids = Data().clients.map((c: any) => c.id).filter((x: any) => x)
       if (ids.length === 0) {
         this.loading = false
@@ -79,7 +105,7 @@ export default {
       this.loading = false
     },
     copyAll() {
-      const txt = this.text
+      const txt = this.displayText
       const hiddenButton = document.createElement('button')
       hiddenButton.className = 'export-clipboard-btn'
       document.body.appendChild(hiddenButton)
