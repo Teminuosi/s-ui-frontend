@@ -50,6 +50,13 @@ export default {
     success: "Template created successfully",
     failName: "An inbound tag or client name already exists, please try again",
   },
+  exportLinks: {
+    btn: "Export",
+    title: "Export Links",
+    desc: "All client share links, one per line. In v2rayN: Servers → Import bulk URL from clipboard (Ctrl+V).",
+    copy: "Copy All",
+    empty: "No links to export",
+  },
   error: {
     dplData: "Duplicate Data",
     core: "Sing-Box Error",

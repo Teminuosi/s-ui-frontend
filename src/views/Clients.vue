@@ -35,9 +35,17 @@
     :tag="stats.tag"
     @close="closeStats"
   />
+  <ExportLinks
+    v-model="exportModal"
+    :visible="exportModal"
+    @close="exportModal = false"
+  />
   <v-row justify="center" align="center">
     <v-col cols="auto">
       <v-btn color="primary" @click="showModal(0)">{{ $t('actions.add') }}</v-btn>
+    </v-col>
+    <v-col cols="auto">
+      <v-btn color="primary" variant="tonal" prepend-icon="mdi-export-variant" @click="exportModal = true">{{ $t('exportLinks.btn') }}</v-btn>
     </v-col>
     <v-col cols="auto">
       <v-menu v-model="actionMenu" :close-on-content-click="false" location="bottom center">
@@ -245,6 +253,7 @@ import ClientAddBulk from '@/layouts/modals/ClientAddBulk.vue'
 import ClientEditBulk from '@/layouts/modals/ClientEditBulk.vue'
 import QrCode from '@/layouts/modals/QrCode.vue'
 import Stats from '@/layouts/modals/Stats.vue'
+import ExportLinks from '@/layouts/modals/ExportLinks.vue'
 import { Client } from '@/types/clients'
 import { computed, ref } from 'vue'
 import { HumanReadable } from '@/plugins/utils'
@@ -316,6 +325,8 @@ const modal = ref({
   visible: false,
   id: 0,
 })
+
+const exportModal = ref(false)
 
 const delOverlay = ref(new Array<boolean>(clients.value.length).fill(false))
 

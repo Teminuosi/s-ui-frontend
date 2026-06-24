@@ -50,6 +50,13 @@ export default {
     success: "模板创建成功",
     failName: "入站标签或客户端名称已存在,请重试",
   },
+  exportLinks: {
+    btn: "导出",
+    title: "导出链接",
+    desc: "所有客户端的分享链接,每行一条。v2rayN:服务器 → 从剪贴板导入批量URL(Ctrl+V)。",
+    copy: "复制全部",
+    empty: "没有可导出的链接",
+  },
   error: {
     dplData: "重复数据",
     core: "Sing-Box 错误",
