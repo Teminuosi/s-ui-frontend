@@ -91,22 +91,37 @@ export default {
   },
   computed: {
     templates() {
+      const t = (k: string) => i18n.global.t('quickTemplate.' + k)
       return [
-        { title: i18n.global.t('quickTemplate.vlessReality'), value: 'vless-reality' },
-        { title: i18n.global.t('quickTemplate.shadowsocks'), value: 'shadowsocks' },
-        { title: i18n.global.t('quickTemplate.hysteria2'), value: 'hysteria2' },
+        { title: t('vlessReality'), value: 'vless-reality' },
+        { title: t('shadowsocks'), value: 'shadowsocks' },
+        { title: t('hysteria2'), value: 'hysteria2' },
+        { title: t('tuic'), value: 'tuic' },
+        { title: t('trojan'), value: 'trojan' },
+        { title: t('vmess'), value: 'vmess' },
+        { title: t('anytls'), value: 'anytls' },
       ]
     },
     selectedTemplate(): any {
+      const desc = i18n.global.t('quickTemplate.' + this.descKey)
+      return { desc }
+    },
+    descKey(): string {
       const map: any = {
-        'vless-reality': { desc: i18n.global.t('quickTemplate.vlessRealityDesc') },
-        'shadowsocks': { desc: i18n.global.t('quickTemplate.shadowsocksDesc') },
-        'hysteria2': { desc: i18n.global.t('quickTemplate.hysteria2Desc') },
+        'vless-reality': 'vlessRealityDesc',
+        'shadowsocks': 'shadowsocksDesc',
+        'hysteria2': 'hysteria2Desc',
+        'tuic': 'tuicDesc',
+        'trojan': 'trojanDesc',
+        'vmess': 'vmessDesc',
+        'anytls': 'anytlsDesc',
       }
       return map[this.selected]
     },
     needsSni(): boolean {
-      return this.selected === 'vless-reality' || this.selected === 'hysteria2'
+      // Every template except Shadowsocks needs a domain (Reality handshake
+      // target for VLESS, certificate name for the self-signed ones).
+      return this.selected !== 'shadowsocks'
     },
   },
   methods: {
@@ -131,9 +146,15 @@ export default {
       this.loading = true
       try {
         let clientId: number | null = null
-        if (this.selected === 'vless-reality') clientId = await this.buildVlessReality(port)
-        else if (this.selected === 'shadowsocks') clientId = await this.buildShadowsocks(port)
-        else if (this.selected === 'hysteria2') clientId = await this.buildHysteria2(port)
+        switch (this.selected) {
+          case 'vless-reality': clientId = await this.buildVlessReality(port); break
+          case 'shadowsocks': clientId = await this.buildShadowsocks(port); break
+          case 'hysteria2': clientId = await this.buildSelfSigned(port, 'hysteria2', 'hysteria2', (n) => ({ hysteria2: { name: n, password: RandomUtil.randomSeq(10) } })); break
+          case 'tuic': clientId = await this.buildSelfSigned(port, 'tuic', 'tuic', (n) => ({ tuic: { name: n, uuid: RandomUtil.randomUUID(), password: RandomUtil.randomSeq(10) } })); break
+          case 'trojan': clientId = await this.buildSelfSigned(port, 'trojan', 'trojan', (n) => ({ trojan: { name: n, password: RandomUtil.randomSeq(10) } })); break
+          case 'vmess': clientId = await this.buildSelfSigned(port, 'vmess', 'vmess', (n) => ({ vmess: { name: n, uuid: RandomUtil.randomUUID(), alterId: 0 } })); break
+          case 'anytls': clientId = await this.buildSelfSigned(port, 'anytls', 'anytls', (n) => ({ anytls: { name: n, password: RandomUtil.randomSeq(10) } })); break
+        }
         if (clientId) {
           push.success({ title: i18n.global.t('success'), message: i18n.global.t('quickTemplate.success') })
           this.closeModal()
@@ -150,6 +171,9 @@ export default {
     // ---- helpers ---------------------------------------------------------
     clientName(): string {
       return (this.form.clientName || ('user-' + RandomUtil.randomLowerAndNum(6))).trim()
+    },
+    err(detail: string) {
+      push.error({ message: i18n.global.t('error.invalidData') + ': ' + detail })
     },
     preflight(tag: string, clientName: string): boolean {
       if (Data().inbounds.some((i: any) => i.tag === tag) ||
@@ -202,6 +226,19 @@ export default {
       })
       return (key.length && cert.length) ? { cert, key } : null
     },
+    // Save TLS, look its id up by name. Returns id or null.
+    async saveTls(tlsObj: any): Promise<number | null> {
+      if (!await Data().save('tls', 'new', tlsObj)) return null
+      return Data().tlsConfigs.find((t: any) => t.name === tlsObj.name)?.id ?? null
+    },
+    // Save inbound (rolling back the TLS if it fails), look id up by tag.
+    async saveInbound(inbound: any, rollbackTlsId?: number): Promise<number | null> {
+      if (!await Data().save('inbounds', 'new', inbound)) {
+        if (rollbackTlsId) await Data().save('tls', 'del', rollbackTlsId)
+        return null
+      }
+      return Data().inbounds.find((i: any) => i.tag === inbound.tag)?.id ?? null
+    },
 
     // ---- templates -------------------------------------------------------
     async buildVlessReality(port: number): Promise<number | null> {
@@ -211,12 +248,11 @@ export default {
       if (!this.preflight(tag, clientName)) return null
 
       const kp = await this.genReality()
-      if (!kp) { push.error({ message: i18n.global.t('error.invalidData') + ': keypair' }); return null }
+      if (!kp) { this.err('keypair'); return null }
 
-      const tlsName = 'reality-' + port + '-' + RandomUtil.randomLowerAndNum(4)
       const tlsObj = {
         id: 0,
-        name: tlsName,
+        name: 'reality-' + port + '-' + RandomUtil.randomLowerAndNum(4),
         server: {
           enabled: true,
           server_name: sni,
@@ -232,19 +268,14 @@ export default {
           utls: { enabled: true, fingerprint: 'chrome' },
         },
       }
-      if (!await Data().save('tls', 'new', tlsObj)) return null
-      const tlsId = Data().tlsConfigs.find((t: any) => t.name === tlsName)?.id
-      if (!tlsId) { push.error({ message: i18n.global.t('error.invalidData') + ': TLS' }); return null }
+      const tlsId = await this.saveTls(tlsObj)
+      if (!tlsId) { this.err('TLS'); return null }
 
       const inbound: any = createInbound('vless', { id: 0, tag, listen: '::', listen_port: port, tls_id: tlsId })
       inbound.addrs = []
       inbound.out_json = {}
-      if (!await Data().save('inbounds', 'new', inbound)) {
-        await Data().save('tls', 'del', tlsId)
-        return null
-      }
-      const inboundId = Data().inbounds.find((i: any) => i.tag === tag)?.id
-      if (!inboundId) { push.error({ message: i18n.global.t('error.invalidData') + ': ' + i18n.global.t('objects.inbound') }); return null }
+      const inboundId = await this.saveInbound(inbound, tlsId)
+      if (!inboundId) { this.err(i18n.global.t('objects.inbound')); return null }
 
       const client = this.baseClient(clientName, inboundId, {
         vless: { name: clientName, uuid: RandomUtil.randomUUID(), flow: 'xtls-rprx-vision' },
@@ -264,9 +295,8 @@ export default {
       inbound.password = RandomUtil.randomShadowsocksPassword(32)
       inbound.addrs = []
       inbound.out_json = {}
-      if (!await Data().save('inbounds', 'new', inbound)) return null
-      const inboundId = Data().inbounds.find((i: any) => i.tag === tag)?.id
-      if (!inboundId) { push.error({ message: i18n.global.t('error.invalidData') + ': ' + i18n.global.t('objects.inbound') }); return null }
+      const inboundId = await this.saveInbound(inbound)
+      if (!inboundId) { this.err(i18n.global.t('objects.inbound')); return null }
 
       const client = this.baseClient(clientName, inboundId, {
         shadowsocks: { name: clientName, password: RandomUtil.randomShadowsocksPassword(32) },
@@ -275,39 +305,33 @@ export default {
       return this.newClientId(clientName)
     },
 
-    async buildHysteria2(port: number): Promise<number | null> {
+    // Generic builder for TLS protocols using an auto self-signed certificate
+    // (Hysteria2 / TUIC / Trojan / VMess / AnyTLS).
+    async buildSelfSigned(port: number, type: string, tagPrefix: string, configFn: (name: string) => any): Promise<number | null> {
       const sni = (this.form.sni || 'www.bing.com').trim()
       const clientName = this.clientName()
-      const tag = 'hysteria2-' + port
+      const tag = tagPrefix + '-' + port
       if (!this.preflight(tag, clientName)) return null
 
       const ss = await this.genSelfSigned(sni)
-      if (!ss) { push.error({ message: i18n.global.t('error.invalidData') + ': cert' }); return null }
+      if (!ss) { this.err('cert'); return null }
 
-      const tlsName = 'hy2-' + port + '-' + RandomUtil.randomLowerAndNum(4)
       const tlsObj = {
         id: 0,
-        name: tlsName,
+        name: tagPrefix + '-' + port + '-' + RandomUtil.randomLowerAndNum(4),
         server: { enabled: true, server_name: sni, certificate: ss.cert, key: ss.key },
         client: { enabled: true, insecure: true, server_name: sni },
       }
-      if (!await Data().save('tls', 'new', tlsObj)) return null
-      const tlsId = Data().tlsConfigs.find((t: any) => t.name === tlsName)?.id
-      if (!tlsId) { push.error({ message: i18n.global.t('error.invalidData') + ': TLS' }); return null }
+      const tlsId = await this.saveTls(tlsObj)
+      if (!tlsId) { this.err('TLS'); return null }
 
-      const inbound: any = createInbound('hysteria2', { id: 0, tag, listen: '::', listen_port: port, tls_id: tlsId })
+      const inbound: any = createInbound(type, { id: 0, tag, listen: '::', listen_port: port, tls_id: tlsId })
       inbound.addrs = []
       inbound.out_json = {}
-      if (!await Data().save('inbounds', 'new', inbound)) {
-        await Data().save('tls', 'del', tlsId)
-        return null
-      }
-      const inboundId = Data().inbounds.find((i: any) => i.tag === tag)?.id
-      if (!inboundId) { push.error({ message: i18n.global.t('error.invalidData') + ': ' + i18n.global.t('objects.inbound') }); return null }
+      const inboundId = await this.saveInbound(inbound, tlsId)
+      if (!inboundId) { this.err(i18n.global.t('objects.inbound')); return null }
 
-      const client = this.baseClient(clientName, inboundId, {
-        hysteria2: { name: clientName, password: RandomUtil.randomSeq(10) },
-      })
+      const client = this.baseClient(clientName, inboundId, configFn(clientName))
       if (!await Data().save('clients', 'new', client)) return null
       return this.newClientId(clientName)
     },
