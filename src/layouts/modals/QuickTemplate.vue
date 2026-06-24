@@ -93,16 +93,20 @@ export default {
     templates() {
       return [
         { title: i18n.global.t('quickTemplate.vlessReality'), value: 'vless-reality' },
+        { title: i18n.global.t('quickTemplate.shadowsocks'), value: 'shadowsocks' },
+        { title: i18n.global.t('quickTemplate.hysteria2'), value: 'hysteria2' },
       ]
     },
     selectedTemplate(): any {
       const map: any = {
         'vless-reality': { desc: i18n.global.t('quickTemplate.vlessRealityDesc') },
+        'shadowsocks': { desc: i18n.global.t('quickTemplate.shadowsocksDesc') },
+        'hysteria2': { desc: i18n.global.t('quickTemplate.hysteria2Desc') },
       }
       return map[this.selected]
     },
     needsSni(): boolean {
-      return this.selected === 'vless-reality'
+      return this.selected === 'vless-reality' || this.selected === 'hysteria2'
     },
   },
   methods: {
@@ -119,119 +123,193 @@ export default {
       this.$emit('close')
     },
     async create() {
-      if (this.selected === 'vless-reality') {
-        await this.createVlessReality()
-      }
-    },
-    async createVlessReality() {
       const port = Number(this.form.port)
       if (!Number.isInteger(port) || port < 1 || port > 65535) {
         push.error({ message: i18n.global.t('error.invalidData') + ': ' + i18n.global.t('in.port') })
         return
       }
-      const sni = (this.form.sni || 'www.microsoft.com').trim()
-      const clientName = (this.form.clientName || ('user-' + RandomUtil.randomLowerAndNum(6))).trim()
-      const tag = 'vless-reality-' + port
-
-      // Guard against duplicate inbound tag / client name before we start.
-      if (Data().inbounds.some((i: any) => i.tag === tag) ||
-          Data().clients.some((c: any) => c.name === clientName)) {
-        push.error({ message: i18n.global.t('quickTemplate.failName') })
-        return
-      }
-
       this.loading = true
       try {
-        // 1) Reality keypair
-        const kp = await HttpUtils.get('api/keypairs', { k: 'reality' })
-        if (!kp.success) return
-        let priv = '', pub = ''
-        kp.obj.forEach((line: string) => {
-          if (line.startsWith('PrivateKey')) priv = line.substring(12)
-          if (line.startsWith('PublicKey')) pub = line.substring(11)
-        })
-        if (!priv || !pub) {
-          push.error({ message: i18n.global.t('error.invalidData') + ': keypair' })
-          return
+        let clientId: number | null = null
+        if (this.selected === 'vless-reality') clientId = await this.buildVlessReality(port)
+        else if (this.selected === 'shadowsocks') clientId = await this.buildShadowsocks(port)
+        else if (this.selected === 'hysteria2') clientId = await this.buildHysteria2(port)
+        if (clientId) {
+          push.success({ title: i18n.global.t('success'), message: i18n.global.t('quickTemplate.success') })
+          this.closeModal()
+          // Pop the QR straight away so it can be scanned into a client app.
+          this.$emit('created', clientId)
         }
-
-        // 2) TLS record carrying the Reality config
-        const tlsName = 'reality-' + port + '-' + RandomUtil.randomLowerAndNum(4)
-        const tlsObj = {
-          id: 0,
-          name: tlsName,
-          server: {
-            enabled: true,
-            server_name: sni,
-            reality: {
-              enabled: true,
-              handshake: { server: sni, server_port: 443 },
-              private_key: priv,
-              short_id: RandomUtil.randomShortId(),
-            },
-          },
-          client: {
-            reality: { enabled: true, public_key: pub, short_id: '' },
-            utls: { enabled: true, fingerprint: 'chrome' },
-          },
-        }
-        if (!await Data().save('tls', 'new', tlsObj)) return
-        const tlsId = Data().tlsConfigs.find((t: any) => t.name === tlsName)?.id
-        if (!tlsId) {
-          push.error({ message: i18n.global.t('error.invalidData') + ': TLS' })
-          return
-        }
-
-        // 3) VLESS + Reality (Vision) inbound referencing the TLS record.
-        // Note: flow / packet_encoding are per-user fields and live on the
-        // client config, NOT on the inbound (the backend rejects unknown
-        // inbound fields with a strict JSON decoder).
-        const inbound: any = createInbound('vless', {
-          id: 0,
-          tag: tag,
-          listen: '::',
-          listen_port: port,
-          tls_id: tlsId,
-        })
-        inbound.addrs = []
-        inbound.out_json = {}
-        if (!await Data().save('inbounds', 'new', inbound)) {
-          // Roll back the orphan TLS record we just created.
-          await Data().save('tls', 'del', tlsId)
-          return
-        }
-        const inboundId = Data().inbounds.find((i: any) => i.tag === tag)?.id
-        if (!inboundId) {
-          push.error({ message: i18n.global.t('error.invalidData') + ': ' + i18n.global.t('objects.inbound') })
-          return
-        }
-
-        // 4) First client, linked to the new inbound
-        const client = {
-          enable: true,
-          name: clientName,
-          config: { vless: { name: clientName, uuid: RandomUtil.randomUUID(), flow: 'xtls-rprx-vision' } },
-          inbounds: [inboundId],
-          links: [],
-          volume: 0,
-          expiry: 0,
-          up: 0,
-          down: 0,
-          desc: '',
-          group: '',
-        }
-        if (!await Data().save('clients', 'new', client)) return
-
-        push.success({ title: i18n.global.t('success'), message: i18n.global.t('quickTemplate.success') })
-        const newClientId = Data().clients.find((c: any) => c.name === clientName)?.id
-        this.closeModal()
-        // Pop the QR code straight away so it can be scanned into a client app.
-        if (newClientId) this.$emit('created', newClientId)
       } catch (e: any) {
         push.error({ message: i18n.global.t('error.invalidData') + ': ' + (e?.toString() ?? '') })
       } finally {
         this.loading = false
       }
+    },
+
+    // ---- helpers ---------------------------------------------------------
+    clientName(): string {
+      return (this.form.clientName || ('user-' + RandomUtil.randomLowerAndNum(6))).trim()
+    },
+    preflight(tag: string, clientName: string): boolean {
+      if (Data().inbounds.some((i: any) => i.tag === tag) ||
+          Data().clients.some((c: any) => c.name === clientName)) {
+        push.error({ message: i18n.global.t('quickTemplate.failName') })
+        return false
+      }
+      return true
+    },
+    newClientId(clientName: string): number | null {
+      return Data().clients.find((c: any) => c.name === clientName)?.id ?? null
+    },
+    baseClient(clientName: string, inboundId: number, config: any) {
+      return {
+        enable: true,
+        name: clientName,
+        config: config,
+        inbounds: [inboundId],
+        links: [],
+        volume: 0,
+        expiry: 0,
+        up: 0,
+        down: 0,
+        desc: '',
+        group: '',
+      }
+    },
+    async genReality(): Promise<{ priv: string, pub: string } | null> {
+      const kp = await HttpUtils.get('api/keypairs', { k: 'reality' })
+      if (!kp.success) return null
+      let priv = '', pub = ''
+      kp.obj.forEach((line: string) => {
+        if (line.startsWith('PrivateKey')) priv = line.substring(12)
+        if (line.startsWith('PublicKey')) pub = line.substring(11)
+      })
+      return (priv && pub) ? { priv, pub } : null
+    },
+    async genSelfSigned(sni: string): Promise<{ cert: string[], key: string[] } | null> {
+      const msg = await HttpUtils.get('api/keypairs', { k: 'tls', o: sni || "''" })
+      if (!msg.success || !msg.obj || msg.obj.length === 0) return null
+      const key: string[] = [], cert: string[] = []
+      let inKey = false, inCert = false
+      msg.obj.forEach((line: string) => {
+        if (line === '-----BEGIN PRIVATE KEY-----') { inKey = true; inCert = false; key.push(line) }
+        else if (line === '-----END PRIVATE KEY-----') { inKey = false; key.push(line) }
+        else if (line === '-----BEGIN CERTIFICATE-----') { inCert = true; inKey = false; cert.push(line) }
+        else if (line === '-----END CERTIFICATE-----') { inCert = false; cert.push(line) }
+        else if (inKey) key.push(line)
+        else if (inCert) cert.push(line)
+      })
+      return (key.length && cert.length) ? { cert, key } : null
+    },
+
+    // ---- templates -------------------------------------------------------
+    async buildVlessReality(port: number): Promise<number | null> {
+      const sni = (this.form.sni || 'www.microsoft.com').trim()
+      const clientName = this.clientName()
+      const tag = 'vless-reality-' + port
+      if (!this.preflight(tag, clientName)) return null
+
+      const kp = await this.genReality()
+      if (!kp) { push.error({ message: i18n.global.t('error.invalidData') + ': keypair' }); return null }
+
+      const tlsName = 'reality-' + port + '-' + RandomUtil.randomLowerAndNum(4)
+      const tlsObj = {
+        id: 0,
+        name: tlsName,
+        server: {
+          enabled: true,
+          server_name: sni,
+          reality: {
+            enabled: true,
+            handshake: { server: sni, server_port: 443 },
+            private_key: kp.priv,
+            short_id: RandomUtil.randomShortId(),
+          },
+        },
+        client: {
+          reality: { enabled: true, public_key: kp.pub, short_id: '' },
+          utls: { enabled: true, fingerprint: 'chrome' },
+        },
+      }
+      if (!await Data().save('tls', 'new', tlsObj)) return null
+      const tlsId = Data().tlsConfigs.find((t: any) => t.name === tlsName)?.id
+      if (!tlsId) { push.error({ message: i18n.global.t('error.invalidData') + ': TLS' }); return null }
+
+      const inbound: any = createInbound('vless', { id: 0, tag, listen: '::', listen_port: port, tls_id: tlsId })
+      inbound.addrs = []
+      inbound.out_json = {}
+      if (!await Data().save('inbounds', 'new', inbound)) {
+        await Data().save('tls', 'del', tlsId)
+        return null
+      }
+      const inboundId = Data().inbounds.find((i: any) => i.tag === tag)?.id
+      if (!inboundId) { push.error({ message: i18n.global.t('error.invalidData') + ': ' + i18n.global.t('objects.inbound') }); return null }
+
+      const client = this.baseClient(clientName, inboundId, {
+        vless: { name: clientName, uuid: RandomUtil.randomUUID(), flow: 'xtls-rprx-vision' },
+      })
+      if (!await Data().save('clients', 'new', client)) return null
+      return this.newClientId(clientName)
+    },
+
+    async buildShadowsocks(port: number): Promise<number | null> {
+      const clientName = this.clientName()
+      const tag = 'shadowsocks-' + port
+      if (!this.preflight(tag, clientName)) return null
+
+      // Shadowsocks 2022 needs no certificate. Server key + per-user key.
+      const inbound: any = createInbound('shadowsocks', { id: 0, tag, listen: '::', listen_port: port })
+      inbound.method = '2022-blake3-aes-256-gcm'
+      inbound.password = RandomUtil.randomShadowsocksPassword(32)
+      inbound.addrs = []
+      inbound.out_json = {}
+      if (!await Data().save('inbounds', 'new', inbound)) return null
+      const inboundId = Data().inbounds.find((i: any) => i.tag === tag)?.id
+      if (!inboundId) { push.error({ message: i18n.global.t('error.invalidData') + ': ' + i18n.global.t('objects.inbound') }); return null }
+
+      const client = this.baseClient(clientName, inboundId, {
+        shadowsocks: { name: clientName, password: RandomUtil.randomShadowsocksPassword(32) },
+      })
+      if (!await Data().save('clients', 'new', client)) return null
+      return this.newClientId(clientName)
+    },
+
+    async buildHysteria2(port: number): Promise<number | null> {
+      const sni = (this.form.sni || 'www.bing.com').trim()
+      const clientName = this.clientName()
+      const tag = 'hysteria2-' + port
+      if (!this.preflight(tag, clientName)) return null
+
+      const ss = await this.genSelfSigned(sni)
+      if (!ss) { push.error({ message: i18n.global.t('error.invalidData') + ': cert' }); return null }
+
+      const tlsName = 'hy2-' + port + '-' + RandomUtil.randomLowerAndNum(4)
+      const tlsObj = {
+        id: 0,
+        name: tlsName,
+        server: { enabled: true, server_name: sni, certificate: ss.cert, key: ss.key },
+        client: { enabled: true, insecure: true, server_name: sni },
+      }
+      if (!await Data().save('tls', 'new', tlsObj)) return null
+      const tlsId = Data().tlsConfigs.find((t: any) => t.name === tlsName)?.id
+      if (!tlsId) { push.error({ message: i18n.global.t('error.invalidData') + ': TLS' }); return null }
+
+      const inbound: any = createInbound('hysteria2', { id: 0, tag, listen: '::', listen_port: port, tls_id: tlsId })
+      inbound.addrs = []
+      inbound.out_json = {}
+      if (!await Data().save('inbounds', 'new', inbound)) {
+        await Data().save('tls', 'del', tlsId)
+        return null
+      }
+      const inboundId = Data().inbounds.find((i: any) => i.tag === tag)?.id
+      if (!inboundId) { push.error({ message: i18n.global.t('error.invalidData') + ': ' + i18n.global.t('objects.inbound') }); return null }
+
+      const client = this.baseClient(clientName, inboundId, {
+        hysteria2: { name: clientName, password: RandomUtil.randomSeq(10) },
+      })
+      if (!await Data().save('clients', 'new', client)) return null
+      return this.newClientId(clientName)
     },
   },
 }
