@@ -22,8 +22,8 @@
           fixed-tabs
           align-tabs="center"
         >
-          <v-tab value="sub">{{ $t('setting.sub') }}</v-tab>
           <v-tab value="link">{{ $t('client.links') }}</v-tab>
+          <v-tab value="sub">{{ $t('setting.sub') }}</v-tab>
         </v-tabs>
         <v-window v-model="tab" style="margin-top: 10px;">
           <v-window-item value="sub">
@@ -77,7 +77,7 @@ export default {
   props: ['id', 'visible'],
   data() {
     return {
-      tab: "sub",
+      tab: "link",
       client: <any>{},
       loading: false,
     }
@@ -140,7 +140,7 @@ export default {
   watch: {
     visible(v) {
       if (v) {
-        this.tab = "sub"
+        this.tab = "link"
         this.load()
       }
     },
