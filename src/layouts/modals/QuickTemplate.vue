@@ -39,12 +39,13 @@
               </v-text-field>
             </v-col>
             <v-col cols="12" v-if="needsSni">
-              <v-text-field
+              <v-combobox
                 :label="$t('quickTemplate.sni')"
                 :hint="$t('quickTemplate.sniHint')"
                 persistent-hint
+                :items="sniPresets"
                 v-model="form.sni">
-              </v-text-field>
+              </v-combobox>
             </v-col>
           </v-row>
         </v-container>
@@ -81,8 +82,10 @@ export default {
       form: {
         clientName: '',
         port: 0,
-        sni: 'www.microsoft.com',
+        sni: 'www.apple.com',
       },
+      // Known reliable Reality handshake targets (TLS1.3 + HTTP/2, own infra).
+      sniPresets: ['www.apple.com', 'addons.mozilla.org', 'www.amazon.com', 'www.tesla.com', 'www.microsoft.com', 'www.bing.com'],
     }
   },
   watch: {
@@ -134,7 +137,7 @@ export default {
       this.form = {
         clientName: 'user-' + RandomUtil.randomLowerAndNum(6),
         port: RandomUtil.randomIntRange(10000, 60000),
-        sni: 'www.microsoft.com',
+        sni: 'www.apple.com',
       }
       this.loading = false
     },
@@ -319,7 +322,7 @@ export default {
 
     // ---- single-protocol templates --------------------------------------
     async buildVlessReality(port: number, clientName: string): Promise<number | null> {
-      const id = await this.inboundReality(port, this.sniOr('www.microsoft.com'))
+      const id = await this.inboundReality(port, this.sniOr('www.apple.com'))
       if (!id) return null
       return this.saveClient(clientName, [id], { vless: { name: clientName, uuid: RandomUtil.randomUUID(), flow: 'xtls-rprx-vision' } })
     },
@@ -336,7 +339,7 @@ export default {
 
     // ---- all protocols, one shared client -------------------------------
     async buildAll(clientName: string): Promise<number | null> {
-      const sni = this.sniOr('www.microsoft.com')
+      const sni = this.sniOr('www.apple.com')
       const used = new Set<number>(Data().inbounds.map((i: any) => i.listen_port))
       const pickPort = (): number => {
         let p = 0
