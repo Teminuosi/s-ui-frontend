@@ -92,6 +92,25 @@ export default {
     closeModal() {
       this.$emit('close')
     },
+    // Parse a SOCKS5 landing into a sing-box socks outbound, or return null.
+    // Accepts: socks5://[user:pass@]host:port  and  IP:PORT[:USER:PASS]
+    parseSocks(raw: string): any | null {
+      const uri = raw.match(/^socks5?:\/\/(?:([^:@/]+):([^@/]+)@)?\[?([^\]:/]+)\]?:(\d{1,5})\/?.*$/i)
+      if (uri) {
+        const ob: any = { type: 'socks', server: uri[3], server_port: parseInt(uri[4]), version: '5' }
+        if (uri[1]) { ob.username = decodeURIComponent(uri[1]); ob.password = decodeURIComponent(uri[2]) }
+        return ob
+      }
+      const parts = raw.split(':')
+      if ((parts.length === 2 || parts.length === 4) && /^(\d{1,3}\.){3}\d{1,3}$/.test(parts[0])) {
+        const port = parseInt(parts[1])
+        if (!Number.isInteger(port) || port < 1 || port > 65535) return null
+        const ob: any = { type: 'socks', server: parts[0], server_port: port, version: '5' }
+        if (parts.length === 4) { ob.username = parts[2]; ob.password = parts[3] }
+        return ob
+      }
+      return null
+    },
     async createRelay() {
       const link = (this.form.link || '').trim()
       if (!link) {
@@ -105,13 +124,18 @@ export default {
       this.loading = true
       this.result = null
       try {
-        // 1) Convert the share link into an outbound.
-        const conv = await HttpUtils.post('api/linkConvert', { link })
-        if (!conv.success || !conv.obj || !conv.obj.type) {
-          push.error({ message: i18n.global.t('relay.convertFail') })
-          return
+        // 1) Build the landing outbound. SOCKS5 (raw IP:PORT[:USER:PASS] or
+        // socks5:// URI) is handled here; everything else goes through the
+        // backend share-link converter.
+        let outbound: any = this.parseSocks(link)
+        if (!outbound) {
+          const conv = await HttpUtils.post('api/linkConvert', { link })
+          if (!conv.success || !conv.obj || !conv.obj.type) {
+            push.error({ message: i18n.global.t('relay.convertFail') })
+            return
+          }
+          outbound = conv.obj
         }
-        const outbound: any = conv.obj
 
         // 2) Pick a unique tag for the landing outbound.
         const base = (this.form.name || '').trim() || outbound.tag || ('relay-' + RandomUtil.randomLowerAndNum(6))

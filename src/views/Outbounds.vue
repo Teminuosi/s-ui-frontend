@@ -20,20 +20,12 @@
     :tag="stats.tag"
     @close="closeStats"
   />
-  <RelayWizard
-    v-model="relayModal"
-    :visible="relayModal"
-    @close="relayModal = false"
-  />
   <v-row justify="center" align="center">
     <v-col cols="auto">
       <v-btn color="primary" @click="showModal(0)">{{ $t('actions.add') }}</v-btn>
     </v-col>
     <v-col cols="auto">
       <v-btn color="primary" @click="showBulkModal">{{ $t('actions.addbulk') }}</v-btn>
-    </v-col>
-    <v-col cols="auto">
-      <v-btn color="primary" variant="tonal" prepend-icon="mdi-transit-connection-variant" @click="relayModal = true">{{ $t('relay.btn') }}</v-btn>
     </v-col>
     <v-col cols="auto">
       <v-btn
@@ -159,7 +151,6 @@ import Data from '@/store/modules/data'
 import HttpUtils from '@/plugins/httputil'
 import OutboundVue from '@/layouts/modals/Outbound.vue'
 import OutboundBulk from '@/layouts/modals/OutboundBulk.vue'
-import RelayWizard from '@/layouts/modals/RelayWizard.vue'
 import Stats from '@/layouts/modals/Stats.vue'
 import { Outbound } from '@/types/outbounds'
 import { computed, ref } from 'vue'
@@ -228,7 +219,6 @@ const closeModal = () => {
 }
 
 const bulkModal = ref({ visible: false })
-const relayModal = ref(false)
 
 const showBulkModal = () => {
   bulkModal.value.visible = true

@@ -51,6 +51,7 @@ const showDrawer = computed((): boolean => {
 const menu = [
   { title: 'pages.home', icon: 'mdi-home',  path: '/' },
   { title: 'pages.inbounds', icon: 'mdi-cloud-download',  path: '/inbounds' },
+  { title: 'pages.relay', icon: 'mdi-transit-connection-variant',  path: '/relay' },
   { title: 'pages.clients', icon: 'mdi-account-multiple',  path: '/clients' },
   { title: 'pages.outbounds', icon: 'mdi-cloud-upload',  path: '/outbounds' },
   { title: 'pages.endpoints', icon: 'mdi-cloud-tags',  path: '/endpoints' },
