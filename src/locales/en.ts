@@ -70,6 +70,7 @@ export default {
     testFail: "Landing test failed",
     empty: "No relays yet. Click \"Add Relay\" to create one.",
     delConfirm: "Delete this relay (its route rule and the landing outbound)?",
+    clearAllConfirm: "Delete ALL relays (route rules + landing outbounds)? This cannot be undone.",
   },
   exportLinks: {
     btn: "Export",

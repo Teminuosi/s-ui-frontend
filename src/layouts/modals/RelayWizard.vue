@@ -85,7 +85,9 @@ export default {
   },
   methods: {
     reset() {
-      this.form = { link: '', name: '', inbounds: [] }
+      // Default the entry to ALL inbounds (all protocols), like the inbound
+      // "All Protocols" template — the user usually just pastes a landing link.
+      this.form = { link: '', name: '', inbounds: [...this.inboundOptions] }
       this.result = null
       this.loading = false
     },

@@ -21,9 +21,31 @@
       </v-list>
     </v-card>
   </v-dialog>
+  <ExportLinks
+    v-model="exportModal"
+    :visible="exportModal"
+    @close="exportModal = false"
+  />
+  <v-dialog v-model="clearConfirm" width="380">
+    <v-card class="rounded-lg" :title="$t('quickTemplate.clearAll')">
+      <v-divider></v-divider>
+      <v-card-text>{{ $t('relay.clearAllConfirm') }}</v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn color="success" variant="outlined" @click="clearConfirm = false">{{ $t('no') }}</v-btn>
+        <v-btn color="error" variant="tonal" :loading="clearLoading" @click="clearAllRelays">{{ $t('yes') }}</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
   <v-row justify="center" align="center">
     <v-col cols="auto">
       <v-btn color="primary" prepend-icon="mdi-transit-connection-variant" @click="wizardModal = true">{{ $t('relay.btn') }}</v-btn>
+    </v-col>
+    <v-col cols="auto">
+      <v-btn color="primary" variant="tonal" prepend-icon="mdi-export-variant" @click="exportModal = true">{{ $t('exportLinks.btn') }}</v-btn>
+    </v-col>
+    <v-col cols="auto" v-if="relays.length > 0">
+      <v-btn color="error" variant="tonal" prepend-icon="mdi-delete-sweep" :loading="clearLoading" @click="clearConfirm = true">{{ $t('quickTemplate.clearAll') }}</v-btn>
     </v-col>
   </v-row>
   <v-row v-if="relays.length === 0">
@@ -87,11 +109,15 @@ import Data from '@/store/modules/data'
 import HttpUtils from '@/plugins/httputil'
 import RelayWizard from '@/layouts/modals/RelayWizard.vue'
 import QrCode from '@/layouts/modals/QrCode.vue'
+import ExportLinks from '@/layouts/modals/ExportLinks.vue'
 import { computed, ref } from 'vue'
 
 const wizardModal = ref(false)
+const exportModal = ref(false)
 const delOverlay = ref<boolean[]>([])
 const delLoading = ref(false)
+const clearConfirm = ref(false)
+const clearLoading = ref(false)
 const checkResults = ref<Record<string, any>>({})
 
 // QR for a relay = the QR of the clients on its entry inbound(s) — that's the
@@ -163,5 +189,24 @@ const delRelay = async (r: any, index: number) => {
   await Data().save('outbounds', 'del', r.outbound)
   delLoading.value = false
   delOverlay.value[index] = false
+}
+
+const clearAllRelays = async () => {
+  clearLoading.value = true
+  const tags = relays.value.map((r: any) => r.outbound)
+  // 1) Drop all relay route rules in one config save.
+  const config = JSON.parse(JSON.stringify(Data().config || {}))
+  if (config.route?.rules) {
+    config.route.rules = config.route.rules.filter(
+      (rule: any) => !(rule.action === 'route' && tags.includes(rule.outbound))
+    )
+  }
+  await Data().save('config', 'set', config)
+  // 2) Delete all the landing outbounds.
+  for (const tag of tags) {
+    await Data().save('outbounds', 'del', tag)
+  }
+  clearLoading.value = false
+  clearConfirm.value = false
 }
 </script>

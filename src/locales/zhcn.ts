@@ -70,6 +70,7 @@ export default {
     testFail: "落地测试失败",
     empty: "还没有中转。点「添加中转」创建一个。",
     delConfirm: "删除该中转(它的路由规则 + 落地出站)?",
+    clearAllConfirm: "删除全部中转(路由规则 + 落地出站)?此操作不可撤销。",
   },
   exportLinks: {
     btn: "导出",
