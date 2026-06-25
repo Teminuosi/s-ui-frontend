@@ -183,9 +183,13 @@ export default {
     name: "名称",
     url: "面板地址",
     urlHint: "完整面板地址,如 http://1.2.3.4:2095/path/",
+    username: "用户名",
+    password: "密码",
     remark: "备注",
     open: "打开",
     openAll: "全部打开",
+    copyPw: "复制密码",
+    pwCopied: "面板已打开,密码已复制,粘贴即可登录",
     empty: "还没有服务器。把你的其他面板加进来,一键打开。",
   },
   actions: {

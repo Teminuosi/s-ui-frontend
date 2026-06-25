@@ -183,9 +183,13 @@ export default {
     name: "Name",
     url: "Panel URL",
     urlHint: "Full panel address, e.g. http://1.2.3.4:2095/path/",
+    username: "Username",
+    password: "Password",
     remark: "Remark",
     open: "Open",
     openAll: "Open All",
+    copyPw: "Copy password",
+    pwCopied: "Panel opened — password copied, paste it to log in",
     empty: "No servers yet. Add your other panels here to open them in one click.",
   },
   actions: {

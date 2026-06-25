@@ -22,6 +22,23 @@
                 placeholder="http://1.2.3.4:2095/path/">
               </v-text-field>
             </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                :label="$t('server.username')"
+                v-model="form.username"
+                hide-details>
+              </v-text-field>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                :label="$t('server.password')"
+                v-model="form.password"
+                :type="showPass ? 'text' : 'password'"
+                :append-inner-icon="showPass ? 'mdi-eye-off' : 'mdi-eye'"
+                @click:append-inner="showPass = !showPass"
+                hide-details>
+              </v-text-field>
+            </v-col>
             <v-col cols="12">
               <v-text-field
                 :label="$t('server.remark')"
@@ -52,14 +69,18 @@ export default {
   data() {
     return {
       loading: false,
-      form: { id: 0, name: '', url: '', remark: '' },
+      showPass: false,
+      form: { id: 0, name: '', url: '', username: '', password: '', remark: '' },
     }
   },
   watch: {
     visible(v: boolean) {
       if (v) {
         const s = this.$props.server
-        this.form = s ? { id: s.id, name: s.name, url: s.url, remark: s.remark } : { id: 0, name: '', url: '', remark: '' }
+        this.form = s
+          ? { id: s.id, name: s.name, url: s.url, username: s.username ?? '', password: s.password ?? '', remark: s.remark }
+          : { id: 0, name: '', url: '', username: '', password: '', remark: '' }
+        this.showPass = false
         this.loading = false
       }
     },
@@ -81,7 +102,13 @@ export default {
         return
       }
       this.loading = true
-      const payload: any = { name, url, remark: (this.form.remark || '').trim() }
+      const payload: any = {
+        name,
+        url,
+        username: (this.form.username || '').trim(),
+        password: this.form.password || '',
+        remark: (this.form.remark || '').trim(),
+      }
       if (this.form.id) payload.id = this.form.id
       const success = await Data().save('servers', this.form.id ? 'edit' : 'new', payload)
       this.loading = false
