@@ -61,6 +61,9 @@ export default {
     plain: "明文",
     base64: "Base64",
     base64Hint: "Base64(订阅内容格式)——给只认整包编码的工具用。",
+    subTab: "订阅",
+    linksTab: "全部链接",
+    subDesc: "把订阅链接添加到客户端(v2rayN / 小火箭)一次,它会拉取该客户端的全部协议并自动更新。",
   },
   error: {
     dplData: "重复数据",

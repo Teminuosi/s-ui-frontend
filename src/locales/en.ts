@@ -61,6 +61,9 @@ export default {
     plain: "Plain",
     base64: "Base64",
     base64Hint: "Base64 (subscription content format) — for tools that import a single encoded blob.",
+    subTab: "Subscription",
+    linksTab: "All Links",
+    subDesc: "Add one subscription URL to your client (v2rayN / Shadowrocket) — it pulls every protocol of that client and auto-updates.",
   },
   error: {
     dplData: "Duplicate Data",
