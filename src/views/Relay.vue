@@ -4,6 +4,23 @@
     :visible="wizardModal"
     @close="wizardModal = false"
   />
+  <QrCode
+    v-model="qrcode.visible"
+    :visible="qrcode.visible"
+    :id="qrcode.id"
+    @close="qrcode.visible = false"
+  />
+  <v-dialog v-model="picker.visible" width="320">
+    <v-card class="rounded-lg" :title="$t('pages.clients')">
+      <v-divider></v-divider>
+      <v-list density="compact" nav>
+        <v-list-item v-for="c in picker.clients" :key="c.id" link @click="pickClient(c.id)">
+          <template v-slot:prepend><v-icon icon="mdi-qrcode"></v-icon></template>
+          <v-list-item-title>{{ c.name }}</v-list-item-title>
+        </v-list-item>
+      </v-list>
+    </v-card>
+  </v-dialog>
   <v-row justify="center" align="center">
     <v-col cols="auto">
       <v-btn color="primary" prepend-icon="mdi-transit-connection-variant" @click="wizardModal = true">{{ $t('relay.btn') }}</v-btn>
@@ -41,6 +58,10 @@
         </v-card-text>
         <v-divider></v-divider>
         <v-card-actions style="padding: 0;">
+          <v-btn icon="mdi-qrcode" @click="showRelayQr(r)">
+            <v-icon />
+            <v-tooltip activator="parent" location="top" :text="$t('client.links')"></v-tooltip>
+          </v-btn>
           <v-btn icon="mdi-file-remove" color="warning" @click="delOverlay[index] = true">
             <v-icon />
             <v-tooltip activator="parent" location="top" :text="$t('actions.del')"></v-tooltip>
@@ -65,12 +86,39 @@
 import Data from '@/store/modules/data'
 import HttpUtils from '@/plugins/httputil'
 import RelayWizard from '@/layouts/modals/RelayWizard.vue'
+import QrCode from '@/layouts/modals/QrCode.vue'
 import { computed, ref } from 'vue'
 
 const wizardModal = ref(false)
 const delOverlay = ref<boolean[]>([])
 const delLoading = ref(false)
 const checkResults = ref<Record<string, any>>({})
+
+// QR for a relay = the QR of the clients on its entry inbound(s) — that's the
+// link end users actually connect with (the relay is transparent to them).
+const qrcode = ref({ visible: false, id: 0 })
+const picker = ref({ visible: false, clients: <any[]>[] })
+
+const clientsForRelay = (r: any): any[] => {
+  const entryIds = (Data().inbounds || []).filter((i: any) => r.inbounds.includes(i.tag)).map((i: any) => i.id)
+  return (Data().clients || []).filter((c: any) => Array.isArray(c.inbounds) && c.inbounds.some((id: number) => entryIds.includes(id)))
+}
+const showRelayQr = (r: any) => {
+  const cls = clientsForRelay(r)
+  if (cls.length === 0) return
+  if (cls.length === 1) {
+    qrcode.value.id = cls[0].id
+    qrcode.value.visible = true
+    return
+  }
+  picker.value.clients = cls
+  picker.value.visible = true
+}
+const pickClient = (id: number) => {
+  picker.value.visible = false
+  qrcode.value.id = id
+  qrcode.value.visible = true
+}
 
 // A "relay" = a route rule (action: route) whose outbound is a real outbound.
 const relays = computed((): any[] => {
