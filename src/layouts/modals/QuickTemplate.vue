@@ -165,9 +165,9 @@ export default {
           case 'vless-reality': clientId = await this.buildVlessReality(port, clientName); break
           case 'shadowsocks': clientId = await this.buildShadowsocks(port, clientName); break
           case 'hysteria2': clientId = await this.buildSelfSigned(port, clientName, 'hysteria2', 'hysteria2', { hysteria2: { name: clientName, password: RandomUtil.randomSeq(10) } }); break
-          case 'tuic': clientId = await this.buildSelfSigned(port, clientName, 'tuic', 'tuic', { tuic: { name: clientName, uuid: RandomUtil.randomUUID(), password: RandomUtil.randomSeq(10) } }); break
+          case 'tuic': clientId = await this.buildSelfSigned(port, clientName, 'tuic', 'tuic', { tuic: { name: clientName, uuid: RandomUtil.randomUUID(), password: RandomUtil.randomSeq(10) } }, ['h3']); break
           case 'trojan': clientId = await this.buildSelfSigned(port, clientName, 'trojan', 'trojan', { trojan: { name: clientName, password: RandomUtil.randomSeq(10) } }); break
-          case 'vmess': clientId = await this.buildSelfSigned(port, clientName, 'vmess', 'vmess', { vmess: { name: clientName, uuid: RandomUtil.randomUUID(), alterId: 0 } }); break
+          case 'vmess': clientId = await this.buildSelfSigned(port, clientName, 'vmess', 'vmess', { vmess: { name: clientName, uuid: RandomUtil.randomUUID(), alterId: 0 } }, ['h2', 'http/1.1']); break
           case 'anytls': clientId = await this.buildSelfSigned(port, clientName, 'anytls', 'anytls', { anytls: { name: clientName, password: RandomUtil.randomSeq(10) } }); break
         }
         if (clientId) {
@@ -293,15 +293,20 @@ export default {
       inbound.out_json = {}
       return this.saveInbound(inbound)
     },
-    async inboundSelfSigned(port: number, type: string, tagPrefix: string, sni: string): Promise<number | null> {
+    async inboundSelfSigned(port: number, type: string, tagPrefix: string, sni: string, alpn?: string[]): Promise<number | null> {
       const tag = tagPrefix + '-' + port
       if (this.tagExists(tag)) return null
       const ss = await this.genSelfSigned(sni)
       if (!ss) { this.err('cert'); return null }
+      // TUIC/VMess need an ALPN on the TLS server or the handshake fails
+      // ("server did not select an ALPN protocol"). prepareTls copies the
+      // server alpn to the client side, so the share link carries it too.
+      const server: any = { enabled: true, server_name: sni, certificate: ss.cert, key: ss.key }
+      if (alpn && alpn.length) server.alpn = alpn
       const tlsObj = {
         id: 0,
         name: tagPrefix + '-' + port + '-' + RandomUtil.randomLowerAndNum(4),
-        server: { enabled: true, server_name: sni, certificate: ss.cert, key: ss.key },
+        server,
         client: { enabled: true, insecure: true, server_name: sni },
       }
       const tlsId = await this.saveTls(tlsObj)
@@ -323,8 +328,8 @@ export default {
       if (!id) return null
       return this.saveClient(clientName, [id], { shadowsocks: { name: clientName, password: RandomUtil.randomShadowsocksPassword(32) } })
     },
-    async buildSelfSigned(port: number, clientName: string, type: string, tagPrefix: string, config: any): Promise<number | null> {
-      const id = await this.inboundSelfSigned(port, type, tagPrefix, this.sniOr('www.bing.com'))
+    async buildSelfSigned(port: number, clientName: string, type: string, tagPrefix: string, config: any, alpn?: string[]): Promise<number | null> {
+      const id = await this.inboundSelfSigned(port, type, tagPrefix, this.sniOr('www.bing.com'), alpn)
       if (!id) return null
       return this.saveClient(clientName, [id], config)
     },
@@ -346,9 +351,9 @@ export default {
       collect(await this.inboundReality(pickPort(), sni))
       collect(await this.inboundShadowsocks(pickPort()))
       collect(await this.inboundSelfSigned(pickPort(), 'hysteria2', 'hysteria2', sni))
-      collect(await this.inboundSelfSigned(pickPort(), 'tuic', 'tuic', sni))
+      collect(await this.inboundSelfSigned(pickPort(), 'tuic', 'tuic', sni, ['h3']))
       collect(await this.inboundSelfSigned(pickPort(), 'trojan', 'trojan', sni))
-      collect(await this.inboundSelfSigned(pickPort(), 'vmess', 'vmess', sni))
+      collect(await this.inboundSelfSigned(pickPort(), 'vmess', 'vmess', sni, ['h2', 'http/1.1']))
       collect(await this.inboundSelfSigned(pickPort(), 'anytls', 'anytls', sni))
 
       if (ids.length === 0) { this.err(i18n.global.t('objects.inbound')); return null }
