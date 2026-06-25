@@ -96,11 +96,9 @@ export default {
       return [
         { title: t('all'), value: 'all' },
         { title: t('vlessReality'), value: 'vless-reality' },
-        { title: t('shadowsocks'), value: 'shadowsocks' },
         { title: t('hysteria2'), value: 'hysteria2' },
         { title: t('tuic'), value: 'tuic' },
         { title: t('trojan'), value: 'trojan' },
-        { title: t('vmess'), value: 'vmess' },
         { title: t('anytls'), value: 'anytls' },
       ]
     },
@@ -163,11 +161,9 @@ export default {
         switch (this.selected) {
           case 'all': clientId = await this.buildAll(clientName); break
           case 'vless-reality': clientId = await this.buildVlessReality(port, clientName); break
-          case 'shadowsocks': clientId = await this.buildShadowsocks(port, clientName); break
           case 'hysteria2': clientId = await this.buildSelfSigned(port, clientName, 'hysteria2', 'hysteria2', { hysteria2: { name: clientName, password: RandomUtil.randomSeq(10) } }); break
           case 'tuic': clientId = await this.buildSelfSigned(port, clientName, 'tuic', 'tuic', { tuic: { name: clientName, uuid: RandomUtil.randomUUID(), password: RandomUtil.randomSeq(10) } }, ['h3']); break
           case 'trojan': clientId = await this.buildSelfSigned(port, clientName, 'trojan', 'trojan', { trojan: { name: clientName, password: RandomUtil.randomSeq(10) } }); break
-          case 'vmess': clientId = await this.buildSelfSigned(port, clientName, 'vmess', 'vmess', { vmess: { name: clientName, uuid: RandomUtil.randomUUID(), alterId: 0 } }, ['h2', 'http/1.1']); break
           case 'anytls': clientId = await this.buildSelfSigned(port, clientName, 'anytls', 'anytls', { anytls: { name: clientName, password: RandomUtil.randomSeq(10) } }); break
         }
         if (clientId) {
@@ -258,6 +254,10 @@ export default {
       if (this.tagExists(tag)) return null
       const kp = await this.genReality()
       if (!kp) { this.err('keypair'); return null }
+      // Use a single non-empty hex short_id. The pre-generated share link picks
+      // one short_id at random from the server list; an empty one (sid=) is
+      // mishandled by some clients, so pin a concrete value for reliability.
+      const sid = RandomUtil.randomShortId().find((s: string) => s.length >= 2) || 'a1b2c3d4'
       const tlsObj = {
         id: 0,
         name: 'reality-' + port + '-' + RandomUtil.randomLowerAndNum(4),
@@ -268,11 +268,11 @@ export default {
             enabled: true,
             handshake: { server: sni, server_port: 443 },
             private_key: kp.priv,
-            short_id: RandomUtil.randomShortId(),
+            short_id: [sid],
           },
         },
         client: {
-          reality: { enabled: true, public_key: kp.pub, short_id: '' },
+          reality: { enabled: true, public_key: kp.pub, short_id: sid },
           utls: { enabled: true, fingerprint: 'chrome' },
         },
       }
@@ -349,11 +349,9 @@ export default {
       const collect = (id: number | null) => { if (id) ids.push(id) }
 
       collect(await this.inboundReality(pickPort(), sni))
-      collect(await this.inboundShadowsocks(pickPort()))
       collect(await this.inboundSelfSigned(pickPort(), 'hysteria2', 'hysteria2', sni))
       collect(await this.inboundSelfSigned(pickPort(), 'tuic', 'tuic', sni, ['h3']))
       collect(await this.inboundSelfSigned(pickPort(), 'trojan', 'trojan', sni))
-      collect(await this.inboundSelfSigned(pickPort(), 'vmess', 'vmess', sni, ['h2', 'http/1.1']))
       collect(await this.inboundSelfSigned(pickPort(), 'anytls', 'anytls', sni))
 
       if (ids.length === 0) { this.err(i18n.global.t('objects.inbound')); return null }
