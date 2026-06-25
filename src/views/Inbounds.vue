@@ -30,6 +30,17 @@
     :id="qrcode.id"
     @close="qrcode.visible = false"
   />
+  <v-dialog v-model="clearConfirm" width="380">
+    <v-card class="rounded-lg" :title="$t('quickTemplate.clearAll')">
+      <v-divider></v-divider>
+      <v-card-text>{{ $t('quickTemplate.clearAllConfirm') }}</v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn color="success" variant="outlined" @click="clearConfirm = false">{{ $t('no') }}</v-btn>
+        <v-btn color="error" variant="tonal" :loading="clearLoading" @click="delAllInbounds">{{ $t('yes') }}</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
   <v-dialog v-model="picker.visible" width="320">
     <v-card class="rounded-lg" :title="$t('pages.clients')">
       <v-divider></v-divider>
@@ -49,6 +60,9 @@
       </v-btn>
       <v-btn color="primary" variant="tonal" class="ms-2" prepend-icon="mdi-export-variant" @click="exportModal = true">
         {{ $t('exportLinks.btn') }}
+      </v-btn>
+      <v-btn v-if="inbounds.length > 0" color="error" variant="tonal" class="ms-2" prepend-icon="mdi-delete-sweep" :loading="clearLoading" @click="clearConfirm = true">
+        {{ $t('quickTemplate.clearAll') }}
       </v-btn>
     </v-col>
   </v-row>
@@ -186,6 +200,18 @@ const closeTemplate = () => {
 }
 
 const exportModal = ref(false)
+
+const clearConfirm = ref(false)
+const clearLoading = ref(false)
+const delAllInbounds = async () => {
+  clearLoading.value = true
+  const tags = inbounds.value.map(i => i.tag)
+  for (const tag of tags) {
+    await Data().save("inbounds", "del", tag)
+  }
+  clearLoading.value = false
+  clearConfirm.value = false
+}
 
 const qrcode = ref({
   visible: false,

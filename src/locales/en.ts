@@ -33,6 +33,8 @@ export default {
     sni: "Camouflage Domain (SNI)",
     sniHint: "Domain used for camouflage (Reality handshake target or self-signed certificate name)",
     create: "Create",
+    clearAll: "Delete All",
+    clearAllConfirm: "Delete ALL inbounds (and their dedicated clients)? This cannot be undone.",
     all: "★ All Protocols",
     allDesc: "Create all 7 protocols at once, sharing a single client (one identity, every protocol). Ports are auto-assigned. Pops a QR with every link.",
     vlessReality: "VLESS + Reality (Vision)",

@@ -33,6 +33,8 @@ export default {
     sni: "伪装域名 (SNI)",
     sniHint: "用作伪装的域名(Reality 握手目标 / 自签证书域名)",
     create: "创建",
+    clearAll: "清空全部",
+    clearAllConfirm: "删除全部入站(及其专属客户端)?此操作不可撤销。",
     all: "★ 全部协议",
     allDesc: "一次性创建全部 7 个协议,共用一个客户端(一个身份、所有协议)。端口自动分配。建完弹出含全部链接的二维码。",
     vlessReality: "VLESS + Reality (Vision)",
