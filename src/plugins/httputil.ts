@@ -60,11 +60,24 @@ function isMsg(obj: any): obj is Msg {
   return Object.hasOwn(obj,'success') && Object.hasOwn(obj,'msg') && Object.hasOwn(obj, 'obj')
 }
   
+// Currently managed remote server id ('' = this local panel). When set, API
+// calls carry X-Remote-Server so the backend forwards them to that server's
+// APIv2 (the central-management proxy).
+let currentRemote = ''
+export function setRemoteServer(id: string | number | null) {
+  currentRemote = id ? String(id) : ''
+}
+export function getRemoteServer(): string {
+  return currentRemote
+}
+
 const HttpUtils = {
   async get(url: string, data: object = {}, options: any[] = []): Promise<Msg> {
     let msg: Msg
     try {
-        const resp = await api.get(url, { params: data, ...options })
+        const config: any = { params: data, ...options }
+        if (currentRemote) config.headers = { ...(config.headers || {}), 'X-Remote-Server': currentRemote }
+        const resp = await api.get(url, config)
         msg = _respToMsg(resp)
     } catch (e: any) {
         msg = { success: false, msg: e.toString(), obj: null }
@@ -75,7 +88,9 @@ const HttpUtils = {
   async post(url: string, data: object | null, options: any = undefined): Promise<Msg> {
     let msg: Msg
     try {
-        const resp = await api.post(url, data, options)
+        const config: any = { ...(options || {}) }
+        if (currentRemote) config.headers = { ...(config.headers || {}), 'X-Remote-Server': currentRemote }
+        const resp = await api.post(url, data, config)
         msg = _respToMsg(resp)
     } catch (e: any) {
         msg = { success: false, msg: e.toString(), obj: null }

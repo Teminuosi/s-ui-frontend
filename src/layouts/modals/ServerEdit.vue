@@ -41,6 +41,14 @@
             </v-col>
             <v-col cols="12">
               <v-text-field
+                :label="$t('server.token')"
+                :hint="$t('server.tokenHint')"
+                persistent-hint
+                v-model="form.token">
+              </v-text-field>
+            </v-col>
+            <v-col cols="12">
+              <v-text-field
                 :label="$t('server.remark')"
                 v-model="form.remark"
                 hide-details>
@@ -70,7 +78,7 @@ export default {
     return {
       loading: false,
       showPass: false,
-      form: { id: 0, name: '', url: '', username: '', password: '', remark: '' },
+      form: { id: 0, name: '', url: '', username: '', password: '', token: '', remark: '' },
     }
   },
   watch: {
@@ -78,8 +86,8 @@ export default {
       if (v) {
         const s = this.$props.server
         this.form = s
-          ? { id: s.id, name: s.name, url: s.url, username: s.username ?? '', password: s.password ?? '', remark: s.remark }
-          : { id: 0, name: '', url: '', username: '', password: '', remark: '' }
+          ? { id: s.id, name: s.name, url: s.url, username: s.username ?? '', password: s.password ?? '', token: s.token ?? '', remark: s.remark }
+          : { id: 0, name: '', url: '', username: '', password: '', token: '', remark: '' }
         this.showPass = false
         this.loading = false
       }
@@ -107,6 +115,7 @@ export default {
         url,
         username: (this.form.username || '').trim(),
         password: this.form.password || '',
+        token: (this.form.token || '').trim(),
         remark: (this.form.remark || '').trim(),
       }
       if (this.form.id) payload.id = this.form.id

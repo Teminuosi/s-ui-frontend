@@ -1,4 +1,4 @@
-import HttpUtils from '@/plugins/httputil'
+import HttpUtils, { setRemoteServer } from '@/plugins/httputil'
 import { defineStore } from 'pinia'
 import { push } from 'notivue'
 import { i18n } from '@/locales'
@@ -20,9 +20,43 @@ const Data = defineStore('Data', {
     clients: <any>[],
     tlsConfigs: <any[]>[],
     servers: <any[]>[],
+    currentServer: localStorage.getItem('currentServer') ?? '',
   }),
   actions: {
+    // The server registry is always local (never proxied to a remote).
+    async loadServers() {
+      const msg = await HttpUtils.get('api/servers')
+      if (msg.success) {
+        this.servers = msg.obj?.servers ?? []
+        // If the server we're managing was removed, fall back to local.
+        if (this.currentServer && !this.servers.some((s: any) => String(s.id) === this.currentServer)) {
+          this.currentServer = ''
+          localStorage.setItem('currentServer', '')
+          setRemoteServer('')
+        }
+      }
+    },
+    // Switch which server the panel manages ('' = this local panel).
+    setCurrentServer(id: string) {
+      id = id ?? ''
+      this.currentServer = id
+      localStorage.setItem('currentServer', id)
+      setRemoteServer(id)
+      // Force a full reload of the newly selected server and drop stale data.
+      this.lastLoad = 0
+      this.config = {}
+      this.inbounds = []
+      this.outbounds = []
+      this.services = []
+      this.endpoints = []
+      this.clients = []
+      this.tlsConfigs = []
+      this.onlines = { inbound: [], outbound: [], user: [] }
+      this.loadData()
+    },
     async loadData() {
+      setRemoteServer(this.currentServer)
+      this.loadServers()
       const msg = await HttpUtils.get('api/load', this.lastLoad >0 ? {lu: this.lastLoad} : {} )
       if(msg.success) {
         this.onlines = msg.obj.onlines
