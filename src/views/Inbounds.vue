@@ -18,7 +18,11 @@
     v-model="templateModal"
     :visible="templateModal"
     @close="closeTemplate"
-    @created="onTemplateCreated"
+  />
+  <ExportLinks
+    v-model="exportModal"
+    :visible="exportModal"
+    @close="exportModal = false"
   />
   <QrCode
     v-model="qrcode.visible"
@@ -42,6 +46,9 @@
       <v-btn color="primary" @click="showModal(0)">{{ $t('actions.add') }}</v-btn>
       <v-btn color="primary" variant="tonal" class="ms-2" prepend-icon="mdi-flash" @click="templateModal = true">
         {{ $t('quickTemplate.btn') }}
+      </v-btn>
+      <v-btn color="primary" variant="tonal" class="ms-2" prepend-icon="mdi-export-variant" @click="exportModal = true">
+        {{ $t('exportLinks.btn') }}
       </v-btn>
     </v-col>
   </v-row>
@@ -141,6 +148,7 @@ import Data from '@/store/modules/data'
 import InboundVue from '@/layouts/modals/Inbound.vue'
 import QuickTemplate from '@/layouts/modals/QuickTemplate.vue'
 import QrCode from '@/layouts/modals/QrCode.vue'
+import ExportLinks from '@/layouts/modals/ExportLinks.vue'
 import Stats from '@/layouts/modals/Stats.vue'
 import { Config } from '@/types/config'
 import { computed, ref } from 'vue'
@@ -177,14 +185,12 @@ const closeTemplate = () => {
   templateModal.value = false
 }
 
+const exportModal = ref(false)
+
 const qrcode = ref({
   visible: false,
   id: 0,
 })
-const onTemplateCreated = (clientId: number) => {
-  qrcode.value.id = clientId
-  qrcode.value.visible = true
-}
 
 // QR access straight from an inbound card. One client -> show its QR directly;
 // several -> let the user pick which one.

@@ -73,7 +73,7 @@ import { push } from 'notivue'
 
 export default {
   props: ['visible'],
-  emits: ['close', 'created'],
+  emits: ['close'],
   data() {
     return {
       loading: false,
@@ -173,7 +173,6 @@ export default {
         if (clientId) {
           push.success({ title: i18n.global.t('success'), message: i18n.global.t('quickTemplate.success') })
           this.closeModal()
-          this.$emit('created', clientId)
         }
       } catch (e: any) {
         push.error({ message: i18n.global.t('error.invalidData') + ': ' + (e?.toString() ?? '') })
