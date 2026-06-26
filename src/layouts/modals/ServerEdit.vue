@@ -22,28 +22,14 @@
                 placeholder="http://1.2.3.4:2095/path/">
               </v-text-field>
             </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field
-                :label="$t('server.username')"
-                v-model="form.username"
-                hide-details>
-              </v-text-field>
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field
-                :label="$t('server.password')"
-                v-model="form.password"
-                :type="showPass ? 'text' : 'password'"
-                :append-inner-icon="showPass ? 'mdi-eye-off' : 'mdi-eye'"
-                @click:append-inner="showPass = !showPass"
-                hide-details>
-              </v-text-field>
-            </v-col>
             <v-col cols="12">
               <v-text-field
                 :label="$t('server.token')"
                 :hint="$t('server.tokenHint')"
                 persistent-hint
+                :type="showPass ? 'text' : 'password'"
+                :append-inner-icon="showPass ? 'mdi-eye-off' : 'mdi-eye'"
+                @click:append-inner="showPass = !showPass"
                 v-model="form.token">
               </v-text-field>
             </v-col>
@@ -78,7 +64,7 @@ export default {
     return {
       loading: false,
       showPass: false,
-      form: { id: 0, name: '', url: '', username: '', password: '', token: '', remark: '' },
+      form: { id: 0, name: '', url: '', token: '', remark: '' },
     }
   },
   watch: {
@@ -86,8 +72,8 @@ export default {
       if (v) {
         const s = this.$props.server
         this.form = s
-          ? { id: s.id, name: s.name, url: s.url, username: s.username ?? '', password: s.password ?? '', token: s.token ?? '', remark: s.remark }
-          : { id: 0, name: '', url: '', username: '', password: '', token: '', remark: '' }
+          ? { id: s.id, name: s.name, url: s.url, token: s.token ?? '', remark: s.remark }
+          : { id: 0, name: '', url: '', token: '', remark: '' }
         this.showPass = false
         this.loading = false
       }
@@ -113,8 +99,6 @@ export default {
       const payload: any = {
         name,
         url,
-        username: (this.form.username || '').trim(),
-        password: this.form.password || '',
         token: (this.form.token || '').trim(),
         remark: (this.form.remark || '').trim(),
       }

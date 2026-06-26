@@ -5,6 +5,16 @@
       <v-divider></v-divider>
       <v-card-text>
         <v-container style="padding: 0;">
+          <v-row v-if="hasServers">
+            <v-col cols="12">
+              <v-select
+                hide-details
+                :label="$t('server.deployTo')"
+                :items="serverOptions"
+                v-model="deployTo">
+              </v-select>
+            </v-col>
+          </v-row>
           <v-row>
             <v-col cols="12">
               <v-select
@@ -94,6 +104,21 @@ export default {
     },
   },
   computed: {
+    // "Deploy to" — which server the created node lands on. Picking a remote
+    // switches the panel context to it (reusing the central-management proxy).
+    hasServers(): boolean {
+      return (Data().servers || []).length > 0
+    },
+    serverOptions(): any[] {
+      return [
+        { title: i18n.global.t('server.local'), value: '' },
+        ...(Data().servers || []).map((s: any) => ({ title: s.name, value: String(s.id) })),
+      ]
+    },
+    deployTo: {
+      get(): string { return Data().currentServer },
+      set(v: string) { Data().setCurrentServer(v ?? '') },
+    },
     templates() {
       const t = (k: string) => i18n.global.t('quickTemplate.' + k)
       return [
