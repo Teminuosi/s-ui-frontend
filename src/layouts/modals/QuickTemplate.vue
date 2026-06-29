@@ -144,7 +144,10 @@ export default {
       return map[this.selected]
     },
     selectedTemplate(): any {
-      return { desc: i18n.global.t('quickTemplate.' + this.descKey) }
+      // {n} in allDesc = how many protocols "★ All" actually builds, derived
+      // from the template list (minus the "all" entry) so the copy never goes
+      // stale when protocols are added/removed. Ignored by descs without {n}.
+      return { desc: i18n.global.t('quickTemplate.' + this.descKey, { n: this.templates.length - 1 }) }
     },
     needsSni(): boolean {
       // Everything except Shadowsocks needs a domain (Reality handshake target

@@ -36,7 +36,7 @@ export default {
     clearAll: "清空全部",
     clearAllConfirm: "删除全部入站(及其专属客户端)?此操作不可撤销。",
     all: "★ 全部协议",
-    allDesc: "一次性创建全部 7 个协议,共用一个客户端(一个身份、所有协议)。端口自动分配。建完弹出含全部链接的二维码。",
+    allDesc: "一次性创建全部 {n} 个协议,共用一个客户端(一个身份、所有协议)。端口自动分配。建完弹出含全部链接的二维码。",
     vlessReality: "VLESS + Reality (Vision)",
     vlessRealityDesc: "推荐。无需证书——通过 Reality 借用真实网站的 TLS。一键建好入站、Reality 密钥对和首个客户端。",
     shadowsocks: "Shadowsocks 2022",
