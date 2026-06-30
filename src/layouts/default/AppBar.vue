@@ -43,18 +43,20 @@
     <v-menu>
       <template v-slot:activator="{ props }">
         <v-btn icon v-bind="props">
-          <v-icon>mdi-theme-light-dark</v-icon>
+          <v-icon>mdi-palette</v-icon>
         </v-btn>
       </template>
-      <v-list>
+      <v-list density="compact">
         <v-list-item
-          v-for="th in themes"
-          :key="th.value"
-          @click="changeTheme(th.value)"
-          :prepend-icon="th.icon"
-          :active="isActiveTheme(th.value)"
+          v-for="sk in skins"
+          :key="sk.id"
+          @click="changeSkin(sk.id)"
+          :active="currentSkin === sk.id"
         >
-          <v-list-item-title>{{ $t(`theme.${th.value}`) }}</v-list-item-title>
+          <template v-slot:prepend>
+            <span class="skin-swatch" :style="{ backgroundImage: sk.swatch }"></span>
+          </template>
+          <v-list-item-title>{{ $t(`skin.${sk.id}`) }}</v-list-item-title>
         </v-list-item>
       </v-list>
     </v-menu>
@@ -65,9 +67,10 @@
 import { useLocale, useTheme } from 'vuetify'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { languages } from '@/locales'
 import Data from '@/store/modules/data'
+import { SKINS, savedSkin, applySkinAttr, type SkinId } from '@/plugins/skins'
 
 defineProps(['isMobile'])
 
@@ -93,18 +96,26 @@ const changeLocale = (l: string) => {
   window.location.reload()
 }
 const isActiveLocale = (l: string) => i18nLocale.value === l
-const themes = [
-  { value: 'light', icon: 'mdi-white-balance-sunny' },
-  { value: 'dark', icon: 'mdi-moon-waning-crescent' },
-  { value: 'system', icon: 'mdi-laptop' },
-]
-
-const changeTheme = (th: string) => {
-  theme.change(th)
-  localStorage.setItem('theme', th)
-}
-const isActiveTheme = (th: string) => {
-  const current = localStorage.getItem('theme') ?? 'system'
-  return current == th
+// Gradient skins replace the old light/dark/system toggle: each skin carries
+// its own base theme, so picking one sets both the gradient and the contrast.
+const skins = SKINS
+const currentSkin = ref<SkinId>(savedSkin().id)
+const changeSkin = (id: SkinId) => {
+  const sk = SKINS.find((s) => s.id === id)!
+  theme.change(sk.base)
+  applySkinAttr(id)
+  localStorage.setItem('skin', id)
+  currentSkin.value = id
 }
 </script>
+
+<style scoped>
+.skin-swatch {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  margin-inline-end: 10px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+}
+</style>

@@ -95,6 +95,15 @@ export default {
     dark: "Dark",
     system: "System",
   },
+  skin: {
+    title: "Appearance",
+    aurora: "Aurora",
+    mesh: "Mesh",
+    deepsea: "Deep Sea",
+    sunrise: "Sunrise",
+    cyber: "Cyber Neon",
+    mint: "Mint",
+  },
   pages: {
     login: "Login",
     home: "Home",

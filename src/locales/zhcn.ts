@@ -95,6 +95,15 @@ export default {
     dark: "深色",
     system: "跟随系统",
   },
+  skin: {
+    title: "外观",
+    aurora: "极光",
+    mesh: "流光网格",
+    deepsea: "深海",
+    sunrise: "晨曦",
+    cyber: "赛博霓虹",
+    mint: "薄荷青",
+  },
   pages: {
     login: "登录",
     home: "主页",
