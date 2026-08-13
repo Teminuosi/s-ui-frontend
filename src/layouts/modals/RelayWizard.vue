@@ -24,14 +24,15 @@
                 hide-details>
               </v-text-field>
             </v-col>
-            <v-col cols="12" sm="6">
+            <v-col cols="12">
               <v-select
                 :label="$t('relay.entry')"
+                :hint="$t('relay.entryHint')"
+                persistent-hint
                 :items="inboundOptions"
                 v-model="form.inbounds"
                 multiple
-                chips
-                hide-details>
+                chips>
               </v-select>
             </v-col>
           </v-row>
@@ -85,9 +86,12 @@ export default {
   },
   methods: {
     reset() {
-      // Default the entry to ALL inbounds (all protocols), like the inbound
-      // "All Protocols" template — the user usually just pastes a landing link.
-      this.form = { link: '', name: '', inbounds: [...this.inboundOptions] }
+      // Start with NO entry selected. A relay route rule redirects each selected
+      // inbound's egress to the landing, so pre-selecting all inbounds would
+      // silently push EVERY existing node out through the landing IP (the "my
+      // original nodes all turned into the relay's IP" bug). Make the user pick
+      // exactly which node(s) to relay.
+      this.form = { link: '', name: '', inbounds: [] }
       this.result = null
       this.loading = false
     },

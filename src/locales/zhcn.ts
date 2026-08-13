@@ -62,6 +62,7 @@ export default {
     linkHint: "vless:// vmess:// trojan:// ss:// hysteria2:// tuic:// … 或 socks5  IP:端口:用户:密码",
     name: "中转名称(可选)",
     entry: "入口入站",
+    entryHint: "只有选中的入站(节点)会经此落地转发;未选中的保持原样直连。",
     create: "创建中转",
     convertFail: "无法解析分享链接",
     success: "中转已创建",

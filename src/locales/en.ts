@@ -62,6 +62,7 @@ export default {
     linkHint: "vless:// vmess:// trojan:// ss:// hysteria2:// tuic:// ... or SOCKS5  IP:PORT:USER:PASS",
     name: "Relay name (optional)",
     entry: "Entry inbound(s)",
+    entryHint: "Only the selected inbound(s) route through this landing; unselected nodes stay direct.",
     create: "Create Relay",
     convertFail: "Could not parse the share link",
     success: "Relay created",
