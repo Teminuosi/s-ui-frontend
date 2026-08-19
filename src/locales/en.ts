@@ -233,6 +233,9 @@ export default {
     disable: "Disable",
     close: "Close",
     restartApp: "Restart App",
+    updatePanel: "Update to",
+    updateConfirm: "This downloads the latest release and restarts the panel (about 1-2 minutes). Subscriptions and nodes keep working. Continue?",
+    updateStarted: "Update started. The panel will restart itself — refresh this page in a minute or two.",
     restartSb: "Restart Singbox",
   },
   login: {

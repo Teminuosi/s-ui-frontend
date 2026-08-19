@@ -233,6 +233,9 @@ export default {
     disable: "禁用",
     close: "关闭",
     restartApp: "重启面板",
+    updatePanel: "更新到",
+    updateConfirm: "更新会下载最新版本并重启面板,大约 1-2 分钟。期间订阅和节点不受影响。确定继续吗?",
+    updateStarted: "更新已开始,面板会自行重启。约 1-2 分钟后手动刷新页面即可。",
     restartSb: "重启 Singbox",
   },
   login: {
