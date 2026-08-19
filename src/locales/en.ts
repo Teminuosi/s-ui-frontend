@@ -244,7 +244,7 @@ export default {
   },
   menu: {
     logout: "Logout",
-    site: "Official site",
+    site: "Blog",
     youtube: "YouTube",
     vps: "VPS picks",
   },
