@@ -59,9 +59,14 @@
           <v-row>
             <v-col cols="4">{{ $t('relay.entry') }}</v-col>
             <v-col cols="8">
-              <v-chip v-for="t in r.inbounds" :key="t" size="x-small" label class="ma-1">{{ t }}</v-chip>
+              <v-chip v-for="t in r.inbounds" :key="t" size="x-small" label class="ma-1"
+                :color="r.shadowed[t] ? 'warning' : undefined">{{ t }}</v-chip>
             </v-col>
           </v-row>
+          <v-alert v-if="Object.keys(r.shadowed).length > 0" type="warning" density="compact" variant="tonal" class="mt-2" style="font-size: 0.8rem;">
+            {{ Object.keys(r.shadowed).length === r.inbounds.length ? $t('relay.shadowedAll') : $t('relay.shadowedSome') }}
+            <div v-for="(owner, t) in r.shadowed" :key="t">{{ $t('relay.shadowedBy', { inbound: t, owner }) }}</div>
+          </v-alert>
           <v-row>
             <v-col cols="4">{{ $t('out.delay') }}</v-col>
             <v-col cols="8">
@@ -110,6 +115,7 @@ import HttpUtils from '@/plugins/httputil'
 import RelayWizard from '@/layouts/modals/RelayWizard.vue'
 import QrCode from '@/layouts/modals/QrCode.vue'
 import ExportLinks from '@/layouts/modals/ExportLinks.vue'
+import { shadowedInbounds } from '@/plugins/relayUtil'
 import { computed, ref } from 'vue'
 
 const wizardModal = ref(false)
@@ -152,7 +158,7 @@ const relays = computed((): any[] => {
   const rules: any[] = config.route?.rules || []
   const obs: any[] = Data().outbounds || []
   const result: any[] = []
-  rules.forEach((rule: any) => {
+  rules.forEach((rule: any, i: number) => {
     if (rule && rule.action === 'route' && rule.outbound && rule.inbound) {
       const ob = obs.find((o: any) => o.tag === rule.outbound)
       if (ob) {
@@ -161,6 +167,8 @@ const relays = computed((): any[] => {
           type: ob.type,
           server: ob.server ?? '-',
           inbounds: Array.isArray(rule.inbound) ? rule.inbound : [rule.inbound],
+          // entry inbounds an earlier rule already captured — this relay never fires for them
+          shadowed: shadowedInbounds(rules, i),
         })
       }
     }

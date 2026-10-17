@@ -35,6 +35,12 @@
                 chips>
               </v-select>
             </v-col>
+            <v-col cols="12" v-if="takenSelected.length > 0">
+              <v-alert type="warning" density="compact" variant="tonal" style="font-size: 0.85rem;">
+                {{ $t('relay.entryTaken') }}
+                <div v-for="t in takenSelected" :key="t">{{ $t('relay.shadowedBy', { inbound: t, owner: owners[t] }) }}</div>
+              </v-alert>
+            </v-col>
           </v-row>
           <v-row v-if="result">
             <v-col cols="12">
@@ -60,6 +66,7 @@ import HttpUtils from '@/plugins/httputil'
 import RandomUtil from '@/plugins/randomUtil'
 import { i18n } from '@/locales'
 import { push } from 'notivue'
+import { inboundOwners } from '@/plugins/relayUtil'
 
 export default {
   props: ['visible'],
@@ -78,10 +85,22 @@ export default {
   },
   computed: {
     // Inbounds that can act as a relay entry (those that carry user traffic).
-    inboundOptions(): string[] {
+    inboundOptions(): any[] {
+      const owners: Record<string, string> = (this as any).owners
       return (Data().inbounds || [])
         .filter((i: any) => i.tag && i.users)
-        .map((i: any) => i.tag)
+        .map((i: any) => ({
+          value: i.tag,
+          title: owners[i.tag] ? i.tag + ' ' + i18n.global.t('relay.entryTakenBy', { owner: owners[i.tag] }) : i.tag,
+        }))
+    },
+    // inbound tag -> landing it already routes to. The new rule is appended
+    // last and sing-box is first-match, so picking one of these does nothing.
+    owners(): Record<string, string> {
+      return inboundOwners(Data().config?.route?.rules || [])
+    },
+    takenSelected(): string[] {
+      return this.form.inbounds.filter((t: string) => t in this.owners)
     },
   },
   methods: {

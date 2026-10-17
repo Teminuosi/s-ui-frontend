@@ -72,6 +72,11 @@ export default {
     empty: "还没有中转。点「添加中转」创建一个。",
     delConfirm: "删除该中转(它的路由规则 + 落地出站)?",
     clearAllConfirm: "删除全部中转(路由规则 + 落地出站)?此操作不可撤销。",
+    entryTaken: "所选入站已被别的中转占用。sing-box 只认第一条匹配的规则,这条新中转对它们不会生效:",
+    entryTakenBy: "(已转发到 {owner})",
+    shadowedBy: "{inbound} → 实际仍从 {owner} 出去",
+    shadowedAll: "此中转未生效:入口入站都已被上面的中转占用。请换一个入站(一个落地对应一个入站)。",
+    shadowedSome: "此中转部分未生效:以下入口入站已被上面的中转占用:",
   },
   exportLinks: {
     btn: "导出",

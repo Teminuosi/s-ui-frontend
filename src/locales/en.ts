@@ -72,6 +72,11 @@ export default {
     empty: "No relays yet. Click \"Add Relay\" to create one.",
     delConfirm: "Delete this relay (its route rule and the landing outbound)?",
     clearAllConfirm: "Delete ALL relays (route rules + landing outbounds)? This cannot be undone.",
+    entryTaken: "Already relayed by another relay — sing-box uses the FIRST matching rule, so this new relay would NOT take effect for:",
+    entryTakenBy: "(already → {owner})",
+    shadowedBy: "{inbound} → still exits via {owner}",
+    shadowedAll: "Not in effect: every entry inbound is already taken by an earlier relay. Pick a different inbound (one landing per inbound).",
+    shadowedSome: "Partly in effect: some entry inbounds are already taken by an earlier relay:",
   },
   exportLinks: {
     btn: "Export",
