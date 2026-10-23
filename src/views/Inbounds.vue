@@ -73,6 +73,10 @@
           <v-row>
             <v-col>{{ item.type }}</v-col>
           </v-row>
+          <!-- 被中转规则接管的节点:它的所有用户都从这个落地出去,不是本机 IP -->
+          <v-chip v-if="exitOf[item.tag]" size="x-small" color="warning" variant="tonal" label class="mt-1">
+            {{ $t('relay.exitVia', { out: exitOf[item.tag] }) }}
+          </v-chip>
         </v-card-subtitle>
         <v-card-text>
           <v-row>
@@ -168,10 +172,15 @@ import { Config } from '@/types/config'
 import { computed, ref } from 'vue'
 import { createInbound, Inbound } from '@/types/inbounds'
 import RandomUtil from '@/plugins/randomUtil'
+import { inboundOwners } from '@/plugins/relayUtil'
 
 const appConfig = computed((): Config => {
   return <Config> Data().config
 })
+
+// inbound tag -> landing it is routed to (relay rules). Shown on the card so a
+// node that now exits via a landing doesn't look like an ordinary direct node.
+const exitOf = computed((): Record<string, string> => inboundOwners((Data().config as any)?.route?.rules || []))
 
 const inbounds = computed((): Inbound[] => {
   return <Inbound[]> Data().inbounds

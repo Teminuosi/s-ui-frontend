@@ -63,6 +63,10 @@
                 :color="r.shadowed[t] ? 'warning' : undefined">{{ t }}</v-chip>
             </v-col>
           </v-row>
+          <!-- 入口是原来的普通节点(不是向导新建的专用入口):它的所有用户都从这个落地出去 -->
+          <v-alert v-if="r.shared.length > 0" type="error" density="compact" variant="tonal" class="mt-2" style="font-size: 0.8rem;">
+            <div v-for="t in r.shared" :key="t">{{ $t('relay.sharedEntry', { inbound: t, n: usersOn(t), out: r.outbound }) }}</div>
+          </v-alert>
           <v-alert v-if="Object.keys(r.shadowed).length > 0" type="warning" density="compact" variant="tonal" class="mt-2" style="font-size: 0.8rem;">
             {{ Object.keys(r.shadowed).length === r.inbounds.length ? $t('relay.shadowedAll') : $t('relay.shadowedSome') }}
             <div v-for="(owner, t) in r.shadowed" :key="t">{{ $t('relay.shadowedBy', { inbound: t, owner }) }}</div>
@@ -116,6 +120,7 @@ import RelayWizard from '@/layouts/modals/RelayWizard.vue'
 import QrCode from '@/layouts/modals/QrCode.vue'
 import ExportLinks from '@/layouts/modals/ExportLinks.vue'
 import { shadowedInbounds } from '@/plugins/relayUtil'
+import { ENTRY_PREFIX, removeEntry } from '@/plugins/relayEntry'
 import { computed, ref } from 'vue'
 
 const wizardModal = ref(false)
@@ -130,6 +135,12 @@ const checkResults = ref<Record<string, any>>({})
 // link end users actually connect with (the relay is transparent to them).
 const qrcode = ref({ visible: false, id: 0 })
 const picker = ref({ visible: false, clients: <any[]>[] })
+
+const usersOn = (tag: string): number => {
+  const ib = (Data().inbounds || []).find((i: any) => i.tag === tag)
+  if (!ib) return 0
+  return (Data().clients || []).filter((c: any) => Array.isArray(c.inbounds) && c.inbounds.includes(ib.id)).length
+}
 
 const clientsForRelay = (r: any): any[] => {
   const entryIds = (Data().inbounds || []).filter((i: any) => r.inbounds.includes(i.tag)).map((i: any) => i.id)
@@ -169,6 +180,8 @@ const relays = computed((): any[] => {
           inbounds: Array.isArray(rule.inbound) ? rule.inbound : [rule.inbound],
           // entry inbounds an earlier rule already captured — this relay never fires for them
           shadowed: shadowedInbounds(rules, i),
+          // entries that are ordinary, pre-existing nodes (not wizard-made)
+          shared: (Array.isArray(rule.inbound) ? rule.inbound : [rule.inbound]).filter((t: string) => !t.startsWith(ENTRY_PREFIX)),
         })
       }
     }
@@ -195,13 +208,18 @@ const delRelay = async (r: any, index: number) => {
   await Data().save('config', 'set', config)
   // 2) Delete the landing outbound.
   await Data().save('outbounds', 'del', r.outbound)
+  // 3) The dedicated entry the wizard made for it (inbound + TLS + its own user).
+  // Left behind it would silently go DIRECT — its users would keep "working"
+  // but with this server's IP instead of the landing's.
+  for (const t of r.inbounds) await removeEntry(t, r.outbound)
   delLoading.value = false
   delOverlay.value[index] = false
 }
 
 const clearAllRelays = async () => {
   clearLoading.value = true
-  const tags = relays.value.map((r: any) => r.outbound)
+  const snapshot = relays.value.map((r: any) => ({ outbound: r.outbound, inbounds: [...r.inbounds] }))
+  const tags = snapshot.map((r: any) => r.outbound)
   // 1) Drop all relay route rules in one config save.
   const config = JSON.parse(JSON.stringify(Data().config || {}))
   if (config.route?.rules) {
@@ -210,9 +228,11 @@ const clearAllRelays = async () => {
     )
   }
   await Data().save('config', 'set', config)
-  // 2) Delete all the landing outbounds.
-  for (const tag of tags) {
-    await Data().save('outbounds', 'del', tag)
+  // 2) Delete all the landing outbounds, and their dedicated entries.
+  // (use the snapshot: once the rules are saved, `relays` recomputes to empty)
+  for (const r of snapshot) {
+    await Data().save('outbounds', 'del', r.outbound)
+    for (const t of r.inbounds) await removeEntry(t, r.outbound)
   }
   clearLoading.value = false
   clearConfirm.value = false
